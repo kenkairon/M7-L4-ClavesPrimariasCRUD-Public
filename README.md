@@ -12,7 +12,7 @@ Educativo y de Aprendizaje Personal
 ---
 # Tecnologías
 - Django: Framework web en Python.
-- PostgreSQL: Base de datos relacional avanzada 
+- SQLite:
 --- 
 # Configuración Inicial 
 1. Entorno virtual 
