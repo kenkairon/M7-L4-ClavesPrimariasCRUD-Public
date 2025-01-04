@@ -6,7 +6,6 @@ Educativo y de Aprendizaje Personal
 ## Tabla de Contenidos
 - [Tecnologías](#Tecnologías)
 - [Configuración Inicial](#configuración-Inicial)
-- [Configuración Base de datos](#configuración-Base-de-datos)
 - [Creación del Modelo](#creación-del-modelo)
 - [Creación de Vistas](#creación-de-vistas)
 
@@ -48,7 +47,7 @@ Educativo y de Aprendizaje Personal
     ```bash     
     python manage.py startapp app2
 
-9. Configuración de mi_proyecto/settings.py 
+9. Configuración de crud/settings.py 
     ```bash 
     INSTALLED_APPS = [
     'django.contrib.admin',
@@ -57,41 +56,11 @@ Educativo y de Aprendizaje Personal
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
-    'gestion_cursos',
+    'app1',
+    'app2',
     ]
 
-# Configuración Base de datos
-9. Instalar python-decouple: Es una biblioteca que ayuda manejar las variables de entorno 
-    ```bash
-    pip install python-decouple
-
-10. Creamos el archivo .env a la altura del proyecto al lado manage.py 
-    ```bash
-    DATABASE_NAME=nombre_base_de_datos
-    DATABASE_USER=postgres
-    DATABASE_PASSWORD=yourpassword
-    DATABASE_HOST=localhost
-    DATABASE_PORT=5432
-
-11. Configuracion de la base de datos ingresando los parametros de conexión 
-    ```bash
-    from decouple import config
-
-    DATABASES = {
-        'default': {
-            'ENGINE': 'django.db.backends.postgresql',
-            'NAME': config('DATABASE_NAME'),
-            'USER': config('DATABASE_USER'),
-            'PASSWORD': config('DATABASE_PASSWORD'),
-            'HOST': config('DATABASE_HOST'),
-            'PORT': config('DATABASE_PORT'),
-        }
-    }
-12. Instalacion de psycopg2: es un adaptador de base de datos para Python que permite interactuar con bases de datos PostgreSQL
-    ```bash
-    pip install psycopg2 
-
-13. Guardo las dependencias me voy un cd .. mas atras del proyecto principal con el objetivo que quede al lado del README.md
+10. Guardo las dependencias me voy un cd .. mas atras del proyecto principal con el objetivo que quede al lado del README.md
     ```bash
     cd ..
     cd ..
@@ -99,127 +68,181 @@ Educativo y de Aprendizaje Personal
 
 # Creación del Modelo 
 
-14. en gestion_cursos/models.py
+14. en app1/models.py
+    ```bash
+    from django.db import models
+    from app2.models import Curso
+
+    # Create your models here.
+    class Estudiante(models.Model):
+        id = models.AutoField(primary_key=True)
+        nombre = models.CharField(max_length=100)
+        curso = models.ForeignKey(Curso, on_delete=models.CASCADE)
+
+        def __str__(self):
+            return f"Nombre: {self.nombre} -curso: {self.curso}"
+
+15. en app2/models.py
     ```bash
     from django.db import models
 
+    # Create your models here.
     class Curso(models.Model):
+        id = models.AutoField(primary_key=True)
         nombre = models.CharField(max_length=100)
-        descripcion = models.TextField()
-        duracion_horas = models.PositiveIntegerField()
-        fecha_inicio = models.DateField()
-        fecha_fin = models.DateField()
-
+        detalle = models.TextField()
         def __str__(self):
             return self.nombre
 
-
-15. Ejecuta las migraciones para aplicar estos cambios a la base de datos:
+16. Ejecuta las migraciones para aplicar estos cambios a la base de datos:
     ```bash 
     python manage.py makemigrations
     python manage.py migrate
 
-16. gestion_cursos/forms.py
+17. gestion_cursos/forms.py
     ```bash 
     from django import forms
-    from .models import Curso
+    from .models import Estudiante
 
-    class CursoForm(forms.ModelForm):
+    class EstudianteForm(forms.ModelForm):
         class Meta:
-            model = Curso
-            fields = ['nombre', 'descripcion', 'duracion_horas', 'fecha_inicio', 'fecha_fin']
+            model = Estudiante
+            fields = '__all__'
+
 
 ## Creación de Vistas
-17. gestion_cursos/views.py 
+18. app1/views.py 
     ```bash 
-    from django.shortcuts import render, redirect
-    from .models import Curso
-    from .forms import CursoForm
+    from django.shortcuts import render, get_object_or_404, redirect
+    from .models import Estudiante
+    from .forms import EstudianteForm
 
-    # Página de inicio
-    def index(request):
-        return render(request, 'gestion_cursos/index.html')
+    # Read Estudiante(leer todos los estudiantes)
+    def estudiante_list(request):
+        estudiantes = Estudiante.objects.all()
+        return render(request, 'app1/estudiante_list.html', {'estudiantes': estudiantes})
 
-    # Lista de cursos
-    def lista_cursos(request):
-        cursos = Curso.objects.all()
-        return render(request, 'gestion_cursos/lista_cursos.html', {'cursos': cursos})
+    # Read Estudiante(leer un estudiante)
+    def estudiante_detail(request, pk):
+        estudiante = get_object_or_404(Estudiante, pk=pk)
+        return render(request, 'app1/estudiante_detail.html', {'estudiante': estudiante})
 
-    # Crear un nuevo curso
-    def crear_curso(request):
-        if request.method == 'POST':
-            form = CursoForm(request.POST)
+    # Crear Estudiante
+    def estudiante_create(request):
+        if request.method == "POST":
+            form = EstudianteForm(request.POST)
             if form.is_valid():
                 form.save()
-                return redirect('lista_cursos')
+                return redirect('estudiante_list')
         else:
-            form = CursoForm()
-        return render(request, 'gestion_cursos/crear_curso.html', {'form': form})
+            form = EstudianteForm()
+        return render(request, 'app1/estudiante_form.html', {'form': form})
 
-18. creamos en templates/gestion_cursos/lista_cursos.html 
+    # Actualizar Estudiante
+    def estudiante_update(request, pk):
+        estudiante = get_object_or_404(Estudiante, pk=pk)
+        if request.method == "POST":
+            form = EstudianteForm(request.POST, instance=estudiante)
+            if form.is_valid():
+                form.save()
+                return redirect('estudiante_list')
+        else:
+            form = EstudianteForm(instance=estudiante)
+        return render(request, 'app1/estudiante_form.html', {'form': form})
+
+    # Eliminar Estudiante
+    def estudiante_delete(request, pk):
+        estudiante = get_object_or_404(Estudiante, pk=pk)
+        if request.method == "POST":
+            estudiante.delete()
+            return redirect('estudiante_list')
+        return render(request, 'app1/estudiante_delete.html', {'estudiante': estudiante})
+
+20. creamos en templates/app1/estudiante_list.html 
     ```bash 
     <!DOCTYPE html>
-    <html lang="en">
+    <html>
 
     <head>
-        <meta charset="UTF-8">
-        <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        <title>Lista de Cursos</title>
+        <title>Estudiantes List</title>
     </head>
 
     <body>
-        <h1>Lista de Cursos</h1>
-        <table border="1">
-            <thead>
-                <tr>
-                    <th>Nombre</th>
-                    <th>Descripción</th>
-                    <th>Duración (horas)</th>
-                    <th>Fecha Inicio</th>
-                    <th>Fecha Fin</th>
-                </tr>
-            </thead>
-            <tbody>
-                {% for curso in cursos %}
-                <tr>
-                    <td>{{ curso.nombre }}</td>
-                    <td>{{ curso.descripcion }}</td>
-                    <td>{{ curso.duracion_horas }}</td>
-                    <td>{{ curso.fecha_inicio }}</td>
-                    <td>{{ curso.fecha_fin }}</td>
-                </tr>
-                {% endfor %}
-            </tbody>
-        </table>
-        <a href="{% url 'crear_curso' %}">Registrar Nuevo Curso</a><br><br>
-        <a href="{% url 'index' %}">Volver</a><br><br>
+        <h1>Estudiantes List</h1>
+        <a href="{% url 'estudiante_create' %}">Create New</a>
+        <ul>
+            {% for estudiante in estudiantes %}
+            <li>
+                <a href="{% url 'estudiante_detail' estudiante.id %}">{{ estudiante.nombre }}</a>
+                <a href="{% url 'estudiante_update' estudiante.id %}">Edit</a>
+                <a href="{% url 'estudiante_delete' estudiante.id %}">Delete</a>
+            </li>
+            {% endfor %}
+        </ul>
     </body>
 
     </html>
-19. creamos en templates/gestion_cursos/index.html 
+21. creamos en templates/app1/detail.html
     ```bash 
     <!DOCTYPE html>
-    <html lang="en">
+    <html>
 
     <head>
-        <meta charset="UTF-8">
-        <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        <title>Página de Inicio</title>
+        <title>Estudiante Detail</title>
     </head>
 
     <body>
-        <h1>Bienvenido al Sistema de Gestión de Cursos</h1>
-        <nav>
-            <ul>
-                <li><a href="{% url 'lista_cursos' %}">Lista de Cursos</a></li>
-                <li><a href="{% url 'crear_curso' %}">Registrar Curso</a></li>
-            </ul>
-        </nav>
+        <h1>{{ estudiante.nombre }}</h1>
+        <p>Curso: {{ estudiante.curso.nombre }}</p>
+        <a href="{% url 'estudiante_update' estudiante.id %}">Edit</a>
+        <a href="{% url 'estudiante_list' %}">Back to List</a>
     </body>
 
     </html>
 
-20. Ingresamos a las rutas http://127.0.0.1:8000/
+22. creamos en templates/app1/estudiante_form.html
 
+    ```bash 
+    <!DOCTYPE html>
+    <html>
+
+    <head>
+        <title>Estudiante Form</title>
+    </head>
+
+    <body>
+        <h1>Estudiante Form</h1>
+        <form method="post">
+            {% csrf_token %}
+            {{ form.as_p }}
+            <button type="submit">Save</button>
+        </form>
+    </body>
+
+    </html>
+
+23. creamos en templates/app1/estudiante_delete.html
+    ```bash 
+    <!DOCTYPE html>
+    <html>
+
+    <head>
+        <title>Delete Estudiante</title>
+    </head>
+
+    <body>
+        <h1>Delete Estudiante</h1>
+        <p>Are you sure you want to delete "{{ estudiante.nombre }}"?</p>
+        <form method="post">
+            {% csrf_token %}
+            <button type="submit">Yes, delete</button>
+        </form>
+        <a href="{% url 'estudiante_list' %}">Cancel</a>
+    </body>
+
+    </html>
+
+24. Activamos el Servidor http://127.0.0.1:8000/
     ```bash 
     python manage.py runserver
+
